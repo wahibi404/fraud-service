@@ -48,6 +48,10 @@ jobs:
         run: pytest -m "not slow" --cov --cov-report=term-missing --cov-report=html --cov-fail-under=80
       - name: Verify all 5,000 golden scores
         run: OMP_NUM_THREADS=1 pytest -m slow
+      - name: Batch output equals 5,000 golden rows
+        run: |
+          OMP_NUM_THREADS=1 python -m fraud_service.batch
+          python scripts/check_golden.py scored.csv
       - name: Upload coverage report
         if: always()            # evidence even on failure
         uses: actions/upload-artifact@v7
