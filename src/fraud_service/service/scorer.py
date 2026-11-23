@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+from fraud_service.api.schemas import PredictRequest  # noqa: F401
 from fraud_service.domain.entities import FraudScore, Transaction
 from fraud_service.domain.policies import decide
 from fraud_service.service.interfaces import Model
