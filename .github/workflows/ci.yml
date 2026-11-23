@@ -122,6 +122,21 @@ jobs:
             | python -c "import json,sys; b=json.load(sys.stdin); assert 0 <= b['fraud_probability'] <= 1; assert b['model_version']; print('smoke OK:', b['decision'])"
           test "$(docker exec svc whoami)" = "appuser"
 
+      - name: Compose stack health and image size
+        run: |
+          docker image inspect fraud-service:ci --format 'image bytes: {{.Size}}'
+          docker rm -f svc
+          docker tag fraud-service:ci fraud-service:dev
+          docker compose up -d --no-build
+          trap 'docker compose down' EXIT
+          docker compose ps
+          for i in $(seq 1 30); do
+            if curl -fsS localhost:8000/v1/ready; then break; fi
+            sleep 2
+          done
+          curl -fsS localhost:8000/v1/ready
+          docker compose exec -T fraud-api whoami | grep -qx appuser
+
   publish:                      # delivery: only on main, never on PRs
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
