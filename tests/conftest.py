@@ -1,0 +1,58 @@
+"""Shared fixtures. Mirrors the app's composition root, but wires FAKES."""
+from datetime import UTC, datetime
+from pathlib import Path
+
+import pytest
+from fastapi.testclient import TestClient
+
+from fraud_service.api.app import create_app
+from fraud_service.api.routes import get_scorer
+from fraud_service.domain.entities import FeatureVector, RawScore, Transaction
+from fraud_service.service.scorer import FraudScorer
+
+BASE_TXN = {
+    "transaction_id": "TXN-TEST-0001", "amount_sar": 250.0, "channel": "ecom",
+    "merchant_category": "electronics", "customer_id": "CUST-77",
+    "timestamp": datetime(2026, 7, 5, 3, 30, tzinfo=UTC),   # fixed clock
+}
+
+
+class ConstantModel:
+    """Test double: returns a fixed probability. Satisfies the Model protocol."""
+
+    def __init__(self, p: float, version: str = "test-1") -> None:
+        self._p, self.model_version = p, version
+
+    def predict_proba(self, features: FeatureVector) -> RawScore:
+        return RawScore(value=self._p)
+
+
+@pytest.fixture
+def make_txn():
+    """Build a VALIDATED transaction; override any field by keyword."""
+    def _make(**overrides) -> Transaction:
+        return Transaction(**{**BASE_TXN, **overrides})
+    return _make
+
+
+@pytest.fixture
+def sample_txn(make_txn) -> Transaction:
+    return make_txn()
+
+
+@pytest.fixture
+def client_factory():
+    """A TestClient with an injected scorer: the dependency-injection payoff."""
+    def _make(probability: float = 0.10, threshold: float = 0.85) -> TestClient:
+        app = create_app()
+        scorer = FraudScorer(model=ConstantModel(probability), block_threshold=threshold)
+        app.dependency_overrides[get_scorer] = lambda: scorer
+        return TestClient(app, raise_server_exceptions=False)
+    return _make
+
+
+@pytest.fixture(scope="session")
+def real_model():
+    """Session-scoped: load the true artefact ONCE for behavioural tests."""
+    from fraud_service.adapters.sklearn_model import SklearnModel
+    return SklearnModel.load(Path("models/fraud_xgb_v3.joblib"))
