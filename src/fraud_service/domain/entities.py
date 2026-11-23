@@ -49,7 +49,7 @@ class Transaction(BaseModel):
             "channel": self.channel.value,
             "mcc": self.merchant_category,
             "hour_of_day": self.timestamp.hour,
-            "is_night": int(self.timestamp.hour <= 6),
+            "is_night": int(self.timestamp.hour < 6),
         })
 
 
