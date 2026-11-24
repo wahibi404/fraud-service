@@ -101,3 +101,7 @@ If scoring seems to hang on a machine with many cores (common under WSL), run
 `export OMP_NUM_THREADS=1` (وفي PowerShell: `$env:OMP_NUM_THREADS=1`) ثم أعد المحاولة.
 
 </div>
+
+## أكاديمية سدايا
+
+[منصة أكاديمية سدايا «أذكى X»](https://athkax.sdaia.gov.sa/)
